@@ -1,56 +1,53 @@
 export interface CGPASemester {
-    sgpa: number;
-    credits: number;
+  sgpa: number;
+  credits: number;
+}
+
+export interface CGPAResult {
+  cgpa: number;
+  totalCredits: number;
+  totalWeightedPoints: number;
+}
+
+export function calculateCGPA(
+  semesters: CGPASemester[],
+  decimalPlaces = 2
+): CGPAResult {
+  if (!Number.isInteger(decimalPlaces) || decimalPlaces < 0 || decimalPlaces > 10) {
+    throw new Error("Decimal places must be an integer between 0 and 10.");
   }
-  
-  export interface CGPAResult {
-    cgpa: number;
-    totalCredits: number;
-    totalWeightedPoints: number;
+
+  if (semesters.length === 0) {
+    return { cgpa: 0, totalCredits: 0, totalWeightedPoints: 0 };
   }
-  
-  export function calculateCGPA(
-    semesters: CGPASemester[],
-    decimalPlaces = 2
-  ): CGPAResult {
-    if (semesters.length === 0) {
-      return {
-        cgpa: 0,
-        totalCredits: 0,
-        totalWeightedPoints: 0,
-      };
+
+  let totalCredits = 0;
+  let totalWeightedPoints = 0;
+
+  for (const semester of semesters) {
+    if (!Number.isFinite(semester.credits) || semester.credits <= 0) {
+      throw new Error("Semester credits must be a finite number greater than zero.");
     }
-  
-    let totalCredits = 0;
-    let totalWeightedPoints = 0;
-  
-    for (const semester of semesters) {
-      if (semester.credits <= 0) {
-        throw new Error("Semester credits must be greater than zero.");
-      }
-  
-      if (semester.sgpa < 0) {
-        throw new Error("SGPA cannot be negative.");
-      }
-  
-      totalCredits += semester.credits;
-      totalWeightedPoints += semester.sgpa * semester.credits;
+
+    if (!Number.isFinite(semester.sgpa) || semester.sgpa < 0) {
+      throw new Error("SGPA must be a finite, non-negative number.");
     }
-  
-    if (totalCredits === 0) {
-      throw new Error("Total credits cannot be zero.");
-    }
-  
-    const rawCGPA = totalWeightedPoints / totalCredits;
-  
-    const multiplier = 10 ** decimalPlaces;
-  
-    const cgpa =
-      Math.round((rawCGPA + Number.EPSILON) * multiplier) / multiplier;
-  
-    return {
-      cgpa,
-      totalCredits,
-      totalWeightedPoints,
-    };
+
+    totalCredits += semester.credits;
+    totalWeightedPoints += semester.sgpa * semester.credits;
   }
+
+  if (!Number.isFinite(totalCredits) || !Number.isFinite(totalWeightedPoints)) {
+    throw new Error("Academic totals exceed the supported numeric range.");
+  }
+
+  if (totalCredits === 0) {
+    throw new Error("Total credits cannot be zero.");
+  }
+
+  const rawCGPA = totalWeightedPoints / totalCredits;
+  const multiplier = 10 ** decimalPlaces;
+  const cgpa = Math.round((rawCGPA + Number.EPSILON) * multiplier) / multiplier;
+
+  return { cgpa, totalCredits, totalWeightedPoints };
+}
